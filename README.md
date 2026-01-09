@@ -1,7 +1,41 @@
-# Computational-Physics-Project
+# Computational-Physics-Project: Binary Star System Stability
 
-The study focuses on a binary star system consisting of two stars: one with 50% of the Sun’s mass and another equal in mass to the Sun. This binary system has an orbital period of 30 Earth days. The objective is to determine where a planet could maintain a stable orbit within this system and to describe the possible stable planetary trajectories.
+This project explores the complex gravitational dynamics of a planetary body within a binary star system. Using numerical integration and computational simulations, we aim to identify stable orbital "safe zones" for planets in circumbinary or S-type configurations.
 
-To address this problem, simulations will be implemented in Python, starting with the well-understood Earth-Sun system as a baseline. Gradually, the complexity will increase, incorporating a second star to analyze the gravitational dynamics of a binary system. The simulations will explore different orbital configurations, considering factors such as the planet’s semi-major axis, eccentricity, and resonance conditions.
+## 🌌 Project Overview
 
-Through numerical integration techniques and stability criteria, the study aims to determine safe zones where a planet can maintain a long-term stable orbit without being ejected or colliding with one of the stars.
+The study focuses on a binary star system with the following characteristics:
+*   **Star A:** 50% of the Sun’s mass ($0.5 M_\odot$).
+*   **Star B:** Equal in mass to the Sun ($1.0 M_\odot$).
+*   **Orbital Period:** 30 Earth days.
+
+The core objective is to determine where a planet could maintain a stable orbit within this system and to describe the resulting trajectories using numerical methods.
+
+## 🎯 Objectives
+
+1.  **Baseline Modeling:** Implement a standard Earth-Sun simulation to calibrate the numerical integrator.
+2.  **Binary Integration:** Incorporate a second stellar mass to analyze the 2-body dynamics of the stars.
+3.  **Stability Mapping:** Explore planetary configurations considering:
+    *   Semi-major axis.
+    *   Initial eccentricity.
+    *   Resonance conditions.
+4.  **Safe Zone Identification:** Use stability criteria to determine regions where planets are not ejected from the system or consumed by the stars.
+
+## 🛠️ Methodology
+
+The project utilizes **Python** and the following scientific stack:
+*   **Numerical Integration:** `scipy.integrate.odeint` for solving the coupled Newtonian differential equations.
+*   **Gravitational Softening:** Implementation of a softening factor to prevent numerical singularities during close encounters.
+*   **Normalization:** Physical quantities are normalized based on the Alpha Centauri reference system for better computational stability.
+*   **Visualization:** An interactive **Streamlit** dashboard for real-time parameter manipulation and 3D orbital rendering.
+
+## 🚀 Installation & Usage
+
+### Prerequisites
+Ensure you have Python 3.8+ installed.
+
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/Computational-Physics-Project.git
+   cd Computational-Physics-Project
