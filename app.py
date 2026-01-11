@@ -1,159 +1,125 @@
 import streamlit as st
 import numpy as np
-from scipy.integrate import odeint
+import scipy.integrate as spi
 import matplotlib.pyplot as plt
-from matplotlib import animation
-import base64
-from datetime import datetime
+import time
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="EventHorizon | N-Body Simulator",
-    page_icon="🌌",
-    layout="wide"
-)
+# Page Configuration
+st.set_page_config(page_title="Stable Orbit Simulator", layout="wide")
 
-# --- CUSTOM STYLING ---
+# CSS for a clean Dark Theme
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; color: white; }
-    stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #4A90E2; color: white; }
+    .main { background-color: #0e1117; }
+    div.stButton > button:first-child { background-color: #2ecc71; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER ---
-st.title("🌌 EventHorizon: Galactic N-Body Lab")
+# --- SIDEBAR CONTROLS ---
+st.sidebar.header("Simulation Parameters")
+# Defaults set for a "Beautiful Orbit"
+pos_x = st.sidebar.slider("Initial Position X (AU)", 1.0, 5.0, 2.8, 0.1)
+vel_y = st.sidebar.slider("Initial Velocity (Orbital)", 0.05, 0.6, 0.13, 0.01)
+tiempo_sim = st.sidebar.slider("Observation Time", 5, 100, 40)
+velocidad_animacion = st.sidebar.select_slider("Animation Speed", options=["Slow", "Normal", "Fast"], value="Normal")
+
+# Speed Mapping
+step_map = {"Slow": 2, "Normal": 5, "Fast": 10}
+anim_step = step_map[velocidad_animacion]
+
+# --- PHYSICAL CONSTANTS ---
+G, m_nd, r_nd, v_nd, t_nd = 6.67408e-11, 1.989e+30, 5e+12, 30000, 79.91*365*24*3600*0.51
+K1 = G * t_nd * m_nd / (r_nd**2 * v_nd)
+K2 = v_nd * t_nd / r_nd
+
+m1, m2 = 0.5, 1.0  # Star masses
+e, ep = 0.2, (1 - 0.2**2)**(1/2)
+a1, a2 = m2 / (m1 + m2), m1 / (m1 + m2)
+
+# --- PHYSICS ENGINE ---
+def ThreeBodyEquations(w, t, m1, m2):
+    # Stars following Keplerian orbits
+    x1, y1 = -a1 * (np.cos(2*np.pi*t) - e), -ep * a1 * np.sin(2*np.pi*t)
+    x2, y2 = a2 * (np.cos(2*np.pi*t) - e), ep * a2 * np.sin(2*np.pi*t)
+    r1, r2, r3 = np.array([x1, y1]), np.array([x2, y2]), w[:2]
+    
+    r13, r23 = np.linalg.norm(r3 - r1), np.linalg.norm(r3 - r2)
+    
+    # Planet acceleration
+    dv3dt = K1 * m1 * (r1 - r3) / r13**3 + K1 * m2 * (r2 - r3) / r23**3
+    dr3dt = K2 * w[2:4]
+    return np.concatenate((dr3dt, dv3dt))
+
+# Pre-calculating the entire trajectory
+init_params = np.array([pos_x, 0.0, 0.0, vel_y])
+time_span = np.linspace(0, tiempo_sim, 1000)
+sol = spi.odeint(ThreeBodyEquations, init_params, time_span, args=(m1, m2))
+
+# Stars trajectories
+x1_p = -a1 * (np.cos(2*np.pi*time_span) - e)
+y1_p = -ep * a1 * np.sin(2*np.pi*time_span)
+x2_p = a2 * (np.cos(2*np.pi*time_span) - e)
+y2_p = ep * a2 * np.sin(2*np.pi*time_span)
+
+# --- REAL-TIME ANIMATION ---
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    st.markdown("<h2 style='text-align: center;'></h2>", unsafe_allow_html=True)
+    plot_placeholder = st.empty()
+    
+    for i in range(0, len(time_span), anim_step):
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(6, 6))
+        
+        # Habitable Zone (Green Ring)
+        hab_zone = plt.Circle((0, 0), 3.2, color='#2ecc71', alpha=0.1)
+        ax.add_patch(hab_zone)
+        inner_void = plt.Circle((0, 0), 1.8, color='#0e1117', alpha=1.0)
+        ax.add_patch(inner_void)
+        
+        # Draw Trarails (Faint stardust)
+        ax.plot(sol[:i, 0], sol[:i, 1], color="white", lw=0.8, alpha=0.4)
+        
+        # DRAW STARS (With Glow Effect)
+        # Star A (Blue)
+        ax.scatter(x1_p[i], y1_p[i], color="#00d4ff", s=150, alpha=0.2) # Outer Glow
+        ax.scatter(x1_p[i], y1_p[i], color="#00d4ff", s=50, edgecolors="white", label="Star A")
+        
+        # Star B (Gold/Yellow - Larger)
+        ax.scatter(x2_p[i], y2_p[i], color="#f1c40f", s=250, alpha=0.2) # Outer Glow
+        ax.scatter(x2_p[i], y2_p[i], color="#f1c40f", s=100, edgecolors="white", label="Star B")
+        
+        # DRAW PLANET (Small and distinct)
+        ax.scatter(sol[i, 0], sol[i, 1], color="#e74c3c", s=20, edgecolors="white", label="Planet")
+        
+        # Formatting
+        ax.set_xlim(-6, 6)
+        ax.set_ylim(-6, 6)
+        ax.axis('off') 
+        
+        plot_placeholder.pyplot(fig)
+        plt.close(fig)
+
+# --- FINAL ANALYSIS (EN) ---
+dist = np.sqrt(sol[:,0]**2 + sol[:,1]**2)
+is_stable = np.max(dist) < 8.0 and np.min(dist) > 0.4
+
+if is_stable:
+    st.success(f"✨ Simulation Complete: Stable orbit detected over {tiempo_sim} time units.")
+    avg_d = np.mean(dist)
+    if 1.8 <= avg_d <= 3.2:
+        st.balloons()
+        st.info("🌍 Life Potential: The planet is staying within the Habitable Zone!")
+    else:
+        st.warning("🌌 Stable but Cold/Hot: The planet is outside the Habitable Zone.")
+else:
+    st.error("💥 System Instability: The planet was ejected or collided with a star.")
+
 st.markdown("""
-This simulator uses **Newtonian Physics** to model the interaction of multiple celestial bodies. 
-By calculating the **gravitational tensors** between $N$ bodies, we can simulate the formation of 
-vortices, galactic disks, and orbital resonances.
+**How to use:**
+1. Use the sidebar to change the starting conditions.
+2. **Blue Star (A)** is smaller, **Golden Star (B)** is more massive.
+3. The **Green Ring** represents the liquid water zone.
+4. Aim for a trajectory that stays inside the green ring without being thrown away!
 """)
-
-# --- SIDEBAR PARAMETERS ---
-st.sidebar.header("🚀 Simulation Command Center")
-
-with st.sidebar.expander("Physics Constants", expanded=True):
-    n_bodies = st.sidebar.slider("Number of Stars (N)", 2, 60, 20)
-    sim_time = st.sidebar.slider("Time Span (Dimensionless)", 1.0, 50.0, 15.0)
-    g_force = st.sidebar.select_slider("Gravitational Strength", options=[1e-11, 6.67e-11, 1e-10, 5e-10], value=6.67e-11)
-    softening = st.sidebar.slider("Softening Factor (Prevents Explosions)", 0.01, 0.5, 0.15)
-
-with st.sidebar.expander("Galaxy Generation (Vortex)", expanded=True):
-    mass_mean = st.sidebar.number_input("Average Star Mass (Solar Masses)", 0.1, 10.0, 1.0)
-    disk_radius = st.sidebar.slider("Initial Disk Radius", 1.0, 10.0, 5.0)
-    vortex_strength = st.sidebar.slider("Orbital Velocity Factor", 0.0, 2.5, 1.2)
-    central_bh = st.sidebar.checkbox("Add Central Supermassive Black Hole", value=True)
-
-# --- PHYSICAL CONSTANTS & NORMALIZATION ---
-# Using Alpha Centauri reference system provided in your prompt
-M_ND = 1.989e+30    # kg (Sun)
-R_ND = 5.326e+12    # m 
-V_ND = 30000        # m/s
-T_ND = 79.91 * 365 * 24 * 3600 * 0.51
-
-K1 = g_force * T_ND * M_ND / ((R_ND ** 2) * V_ND)
-K2 = V_ND * T_ND / R_ND
-
-# --- CORE PHYSICS ENGINE ---
-def n_body_derivs(state, t, n, m_stars):
-    # state contains [x1,y1,z1... xn,yn,zn, vx1,vy1,vz1... vxn,vyn,vzn]
-    r = state[:3*n].reshape((n, 3))
-    v = state[3*n:].reshape((n, 3))
-    
-    drdt = K2 * v
-    dvdt = np.zeros((n, 3))
-    
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                diff = r[j] - r[i]
-                # Gravitational softening: avoids 1/0 infinity when stars collide
-                dist = np.sqrt(np.sum(diff**2) + softening**2)
-                dvdt[i] += K1 * m_stars[j] * diff / (dist**3)
-                
-    return np.concatenate([drdt.flatten(), dvdt.flatten()])
-
-# --- GALAXY INITIALIZER (VORTEX LOGIC) ---
-def generate_vortex(n, r_max, v_factor, has_bh):
-    r0 = []
-    v0 = []
-    m_stars = np.full(n, mass_mean)
-    
-    if has_bh:
-        m_stars[0] = 50.0  # The central body is 50x heavier
-    
-    for i in range(n):
-        if i == 0 and has_bh:
-            r0.append([0, 0, 0])
-            v0.append([0, 0, 0])
-            continue
-            
-        # Distribution in a disk
-        radius = np.random.uniform(0.5, r_max)
-        angle = np.random.uniform(0, 2 * np.pi)
-        
-        x = radius * np.cos(angle)
-        y = radius * np.sin(angle)
-        z = np.random.uniform(-0.2, 0.2) # Flattened disk
-        
-        # Orbital Velocity: V = sqrt(G*M / r)
-        # To create a vortex, velocity must be perpendicular to the radius vector
-        v_mag = v_factor * np.sqrt(m_stars.mean() / radius)
-        vx = -v_mag * np.sin(angle)
-        vy = v_mag * np.cos(angle)
-        vz = np.random.uniform(-0.02, 0.02)
-        
-        r0.append([x, y, z])
-        v0.append([vx, vy, vz])
-        
-    return np.array(r0).flatten(), np.array(v0).flatten(), m_stars
-
-# --- SIMULATION EXECUTION ---
-if st.sidebar.button("✨ Run Simulation"):
-    with st.status("Solving Differential Equations...", expanded=True) as status:
-        st.write("Initializing stellar positions...")
-        r_init, v_init, m_stars = generate_vortex(n_bodies, disk_radius, vortex_strength, central_bh)
-        w0 = np.concatenate([r_init, v_init])
-        
-        t_steps = 300
-        t = np.linspace(0, sim_time, t_steps)
-        
-        st.write("Integrating trajectories (Scipy ODEINT)...")
-        sol = odeint(n_body_derivs, w0, t, args=(n_bodies, m_stars))
-        
-        st.write("Rendering 3D Animation...")
-        # Animation setup
-        fig = plt.figure(figsize=(10, 10), facecolor='black')
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_facecolor('black')
-        
-        # Hide axes for cinematic feel
-        ax.set_axis_off()
-        
-        # Dynamic trails and star points
-        lines = [ax.plot([], [], [], '-', lw=0.8, alpha=0.5, color='cyan')[0] for _ in range(n_bodies)]
-        points = [ax.plot([], [], [], 'o', markersize=3, color='white')[0] for _ in range(n_bodies)]
-        
-        if central_bh:
-            points[0].set_color('yellow')
-            points[0].set_markersize(6)
-
-        def init():
-            limit = disk_radius * 1.5
-            ax.set_xlim(-limit, limit)
-            ax.set_ylim(-limit, limit)
-            ax.set_zlim(-limit/2, limit/2)
-            return lines + points
-
-        def animate(i):
-            for body in range(n_bodies):
-                idx = body * 3
-                # Update trails
-                x_data = sol[:i, idx]
-                y_data = sol[:i, idx+1]
-                z_data = sol[:i, idx+2]
-                lines[body].set_data(x_data, y_data)
-                lines[body].set_3d_properties(z_data)
-                
-                # Update current position
-                points[body].set_data
