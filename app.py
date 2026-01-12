@@ -55,7 +55,7 @@ x2_p = a2 * (np.cos(2*np.pi*time_span) - e)
 y2_p = ep * a2 * np.sin(2*np.pi*time_span)
 
 # --- RENDERIZADO DEL RESULTADO FINAL ---
-st.title("Final Orbital Path Result")
+#st.title("Final Orbital Path Result")
 
 col1, col2 = st.columns([2, 1])
 
