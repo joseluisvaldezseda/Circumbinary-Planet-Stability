@@ -27,7 +27,7 @@ The project utilizes **Python** and the following scientific stack:
 *   **Numerical Integration:** `scipy.integrate.odeint` for solving the coupled Newtonian differential equations.
 *   **Gravitational Softening:** Implementation of a softening factor to prevent numerical singularities during close encounters.
 *   **Normalization:** Physical quantities are normalized based on the Alpha Centauri reference system for better computational stability.
-*   **Visualization:** An interactive **Streamlit** dashboard for real-time parameter manipulation and 3D orbital rendering.
+*   **Visualization:** An interactive **Streamlit** dashboard for real-time parameter manipulation and 2D orbital rendering.
 
 ## 🚀 Installation & Usage
 
