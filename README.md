@@ -31,11 +31,22 @@ The project utilizes **Python** and the following scientific stack:
 
 ## 🚀 Installation & Usage
 
-### Prerequisites
-Ensure you have Python 3.8+ installed.
+### ☁️ Online Access
+You can skip the local setup and access the interactive simulator directly in your browser:
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://circumbinary-planet-stability.streamlit.app/)
 
-### Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/Computational-Physics-Project.git
-   cd Computational-Physics-Project
+---
+
+### 💻 Local Setup
+
+If you prefer to run the project on your machine, follow these steps:
+
+#### 1. Prerequisites
+*   Python 3.8 or higher installed.
+*   `pip` (Python package manager).
+
+#### 2. Clone the Repository
+```bash
+git clone https://github.com/your-username/Computational-Physics-Project.git
+cd Computational-Physics-Project
+
